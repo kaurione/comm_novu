@@ -39,22 +39,22 @@ on:
         description: "Build Worker service"
         required: false
         type: boolean
-        default: true
+        default: false
       build_dashboard:
         description: "Build Dashboard service"
         required: false
         type: boolean
-        default: true
+        default: false
       build_webhook:
         description: "Build Webhook service"
         required: false
         type: boolean
-        default: true
+        default: false
       build_ws:
         description: "Build WebSocket service"
         required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
@@ -187,21 +187,18 @@ jobs:
       - uses: ./.github/actions/free-space
         name: Extend space in Action Container
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login ECR registry
+        id: ecr-login
+        run: |
+          echo -e "\e[1;32mLoggin in to ECR ...\e[0m"
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
       - name: Build ${{ env.SERVICE_NAME }} Community Docker Image
         shell: bash
         env:
           DOCKER_BUILD_ARGUMENTS: >
-            --cache-from type=registry,ref=ghcr.io/${{ env.REGISTRY_OWNER }}/cache:build-cache-${{ env.SERVICE_NAME }}-community
-            --cache-to type=registry,ref=ghcr.io/${{ env.REGISTRY_OWNER }}/cache:build-cache-${{ env.SERVICE_NAME }}-community,mode=max
-            --platform=linux/amd64,linux/arm64 --provenance=false
-            --output=type=image,name=ghcr.io/${{ env.REGISTRY_OWNER }}/${{ env.SERVICE_NAME }},push-by-digest=true,name-canonical=true
+            --platform=linux/amd64 --provenance=false
+            --output=type=image,name=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/novu-${{ env.SERVICE_NAME }},push-by-digest=true,name-canonical=true
         run: |
           cp scripts/dotenvcreate.mjs apps/$SERVICE_COMMON_NAME/src/dotenvcreate.mjs
           cd apps/$SERVICE_COMMON_NAME
@@ -236,16 +233,8 @@ jobs:
           done
           echo "No matching EE files found in the Docker image ${{ matrix.name }}"
 
-      #- name: Tag and Push docker image
-      #  shell: bash
-      #  run: |
-      #    docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:${{ env.LATEST_VERSION }}
-      #    docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:${{ env.LATEST_VERSION }}
-
-      #    if [ "${{ env.IS_NIGHTLY }}" == "true" ]; then
-      #      docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:nightly
-      #      docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:nightly
-      #    else
-      #      docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:latest
-      #      docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:latest
-      #    fi
+      - name: Tag and Push docker image
+        shell: bash
+        run: |
+          docker tag novu-$SERVICE_COMMON_NAME ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/novu-${{ matrix.name }}:${{ env.LATEST_VERSION }}
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/novu-${{ matrix.name }}:${{ env.LATEST_VERSION }}
