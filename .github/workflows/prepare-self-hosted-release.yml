@@ -236,16 +236,16 @@ jobs:
           done
           echo "No matching EE files found in the Docker image ${{ matrix.name }}"
 
-      - name: Tag and Push docker image
-        shell: bash
-        run: |
-          docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:${{ env.LATEST_VERSION }}
-          docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:${{ env.LATEST_VERSION }}
+      #- name: Tag and Push docker image
+      #  shell: bash
+      #  run: |
+      #    docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:${{ env.LATEST_VERSION }}
+      #    docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:${{ env.LATEST_VERSION }}
 
-          if [ "${{ env.IS_NIGHTLY }}" == "true" ]; then
-            docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:nightly
-            docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:nightly
-          else
-            docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:latest
-            docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:latest
-          fi
+      #    if [ "${{ env.IS_NIGHTLY }}" == "true" ]; then
+      #      docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:nightly
+      #      docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:nightly
+      #    else
+      #      docker tag novu-$SERVICE_COMMON_NAME ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:latest
+      #      docker push ghcr.io/$REGISTRY_OWNER/${{ matrix.name }}:latest
+      #    fi
