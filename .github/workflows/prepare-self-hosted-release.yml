@@ -132,23 +132,13 @@ jobs:
           SERVICE_NAME=$(basename "${service//-/-}")
           SERVICE_COMMON_NAME=$(echo "$SERVICE_NAME" | sed 's/-ee$//')
 
-          # Determine version based on nightly flag
-          IS_NIGHTLY=${{ github.event.inputs.nightly == 'true' }}
-          if [ "$IS_NIGHTLY" == "true" ]; then
-            DATE=$(date +'%Y%m%d')
-            SHORT_SHA=$(git rev-parse --short HEAD)
-            LATEST_VERSION="nightly-${DATE}-${SHORT_SHA}"
-            echo "IS_NIGHTLY=true" >> $GITHUB_ENV
-          else
-            LATEST_VERSION=$(jq -r '.version'  apps/api/package.json)
-            echo "IS_NIGHTLY=false" >> $GITHUB_ENV
-          fi
+          LATEST_VERSION=$(jq -r '.version'  apps/api/package.json)
+          echo "IS_NIGHTLY=false" >> $GITHUB_ENV
 
           echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
           echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
           echo "SERVICE_COMMON_NAME=$SERVICE_COMMON_NAME" >> $GITHUB_ENV
           echo "REGISTRY_OWNER=novuhq" >> $GITHUB_ENV
-          echo "This is the service name: $SERVICE_NAME and release version: $LATEST_VERSION"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v3
@@ -173,17 +163,11 @@ jobs:
               }
             }
 
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-          image: tonistiigi/binfmt:qemu-v8.0.4
-
       - name: Set Up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: "image=moby/buildkit:v0.15.0"
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
 
       - uses: ./.github/actions/free-space
         name: Extend space in Action Container
@@ -225,21 +209,6 @@ jobs:
 
           pnpm run docker:build
           docker images
-
-      - name: Check for EE files
-        id: check-ee-files
-        run: |
-          patterns=(
-            './node_modules/@novu/ee-**/dist/index.js'
-            './node_modules/@taskforcesh/bullmq-pro'  # Add more patterns as needed
-          )
-          for pattern in "${patterns[@]}"; do
-            if docker run --rm entrypoint sh novu-$SERVICE_COMMON_NAME -c "ls $pattern 2>/dev/null"; then
-              echo "::error::'$pattern' files were detected in ${{ matrix.name }}."
-              exit 1
-          fi
-          done
-          echo "No matching EE files found in the Docker image ${{ matrix.name }}"
 
       - name: Tag and Push docker image
         shell: bash
