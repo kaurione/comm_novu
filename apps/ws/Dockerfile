@@ -17,17 +17,13 @@ COPY --chown=1000:1000 ./meta .
 COPY --chown=1000:1000 ./deps .
 COPY --chown=1000:1000 ./pkg .
 
-RUN --mount=type=secret,id=BULL_MQ_PRO_NPM_TOKEN,uid=1000 export BULL_MQ_PRO_NPM_TOKEN=$(cat /run/secrets/BULL_MQ_PRO_NPM_TOKEN) && \
-    if [ -n "${BULL_MQ_PRO_NPM_TOKEN}" ] ; then echo 'Building with Enterprise Edition of Novu'; rm -f .npmrc ; cp .npmrc-cloud .npmrc ; fi
-
 RUN --mount=type=cache,id=pnpm-store-ws,target=/root/.pnpm-store\
-    --mount=type=secret,id=BULL_MQ_PRO_NPM_TOKEN,uid=1000 export BULL_MQ_PRO_NPM_TOKEN=$(cat /run/secrets/BULL_MQ_PRO_NPM_TOKEN) && \
  pnpm install --filter "novuhq" --filter "{${PACKAGE_PATH}}..."\
  --frozen-lockfile\
  --unsafe-perm\
  --reporter=silent
 
-RUN --mount=type=secret,id=BULL_MQ_PRO_NPM_TOKEN,uid=1000 export BULL_MQ_PRO_NPM_TOKEN=$(cat /run/secrets/BULL_MQ_PRO_NPM_TOKEN) && NODE_ENV=production NX_DAEMON=false pnpm build:ws
+RUN NODE_ENV=production NX_DAEMON=false pnpm build:ws
 
 WORKDIR /usr/src/app/apps/ws
 
